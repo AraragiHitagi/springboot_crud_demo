@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <script src="./js/jquery.min.js"></script>
+    <script src="./js/vue.min.js"></script>
+    <script src="./js/axios.min.js"></script>
+    <title>查看页面</title>
+</head>
+
+<style>
+    div#listHeroDiv{
+        width: 400px;
+        height: 500px;
+        margin: 100px auto;
+        padding: 50px;
+    }
+
+    table.listHeroTable{
+        margin: 40px auto;
+        border-collapse: collapse;
+    }
+    table.listHeroTable td,th{
+        border: 1px solid #C40000;
+    }
+
+    .disableHref{
+        cursor:default;
+        color:#E5E0E0;
+        text-decoration:none;
+    }
+</style>
+
+<script>
+    //disableHref的链接不可点击
+    $(function () {
+        $("#disableHref").click(function () {
+            return false;
+        });
+    });
+</script>
+
+<body>
+    <div id="listHeroDiv">
+
+        <table class="listHeroTable">
+
+            <tr>
+                <td colspan="3">
+                    <a :class="{disableHref: page.pageNum==1}" @click="jump('first')" href="#">[first]</a>
+                    <a :class="{disableHref: !page.hasPreviousPage}" @click="jump('pre')" href="#">[pre]</a>
+                    <a v-for="i in page.navigatepageNums" :class="{disableHref: page.pageNum==i}" @click="jumpByNumber(i)" href="#">{{i}}</a>
+                    <a :class="{disableHref: !page.hasNextPage}" @click="jump('next')" href="#">[next]</a>
+                    <a :class="{disableHref: page.pageNum==page.pages}" @click="jump('last')" href="#">[last]</a>
+                </td>
+            </tr>
+
+            <tr>
+                <td>英雄名</td>
+                <td>英雄血量</td>
+                <td>操作</td>
+            </tr>
+
+            <tr v-for="hero in heros">
+                <td>{{hero.name}}</td>
+                <td>{{hero.hp}}</td>
+                <td>
+                    <!--这个id是requestParam参数，它将伴随Controller传到editHero页面，
+                    在editHero页面的Vue函数里获得需要修改的Hero对象-->
+                    <a :href="'editHero?id=' + hero.id">编辑</a>
+                    <a href="#" @click="deleteHero(hero.id)">删除</a>
+                </td>
+            </tr>
+
+            <tr>
+                <td colspan="3">
+                    <br>
+                    英雄名:
+                    <input type="text" v-model="hero4add.name">
+                    <br>
+                    英雄血量:
+                    <input type="text" v-model="hero4add.hp">
+                    <br>
+                    <button type="button" @click="add">增加英雄</button>
+                    <br>
+                </td>
+            </tr>
+
+        </table>
+
+    </div>
+</body>
+
+<script type="text/javascript">
+    var data4vue={
+        heros:[],
+        hero4add:{id:0, name:'', hp:'0'},
+        page:{}
+    };
+
+    var vue = new Vue({
+        el:"#listHeroDiv",
+        data:data4vue,
+        //加载初始化
+        mounted:function () {
+            this.list(1);
+        },
+
+        methods:{
+            list:function (start) {
+                var url = "heroes?start=" + start;
+                axios.get(url).then(function (response) {
+                    vue.page = response.data;
+                    // console.log(vue.pagination);
+                    vue.heros = response.data.list;
+                });
+            },
+
+            add:function () {
+                var url = "heroes";
+                axios.post(url, this.hero4add).then(function () {
+                    vue.list(1);
+                    hero4add = {id:0, name:"", hp:0};
+                });
+            },
+            
+            deleteHero:function (id) {
+                var url = "heroes/" + id;
+                axios.delete(url).then(function (value) {
+                    vue.list(1);
+                })
+            },
+
+            jump:function (status) {
+                if(status=='first' && vue.page.pageNum!=1){
+                    vue.list(1);
+                } else if(status=='pre' && vue.page.hasPreviousPage){
+                    vue.list(vue.page.prePage);
+                } else if (status=='next' && vue.page.hasNextPage){
+                    vue.list(vue.page.nextPage);
+                } else if (status=='last' && vue.page.pageNum!=vue.page.pages){
+                    vue.list(vue.page.pages);
+                }
+            },
+            
+            jumpByNumber:function (index) {
+                if(this.page.pageNum != index){
+                    vue.list(index);
+                }
+            }
+        }
+
+    });
+
+</script>
+
+</html>
